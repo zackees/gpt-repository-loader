@@ -46,9 +46,18 @@ def main() -> int:  # pylint: disable=too-many-statements
     parser = argparse.ArgumentParser(
         description="Process a git repository into a single file for chat gpt."
     )
-    parser.add_argument("repo_path", help="path to the git repository", type=str, nargs="?")
-    parser.add_argument("-p", "--preamble", help="path to the preamble file", type=str, nargs="?")
-    parser.add_argument("--clipboard", help="copy the output to the clipboard", action="store_true")
+    parser.add_argument(
+        "repo_path", help="path to the git repository", type=str, nargs="?"
+    )
+    parser.add_argument(
+        "-p", "--preamble", help="path to the preamble file", type=str, nargs="?"
+    )
+    parser.add_argument(
+        "--clipboard", help="copy the output to the clipboard", action="store_true"
+    )
+    parser.add_argument(
+        "--openfile", help="open output file after creation", action="store_true"
+    )
     parser.add_argument(
         "--write-config",
         help="Write a default config file to the target directory.",
@@ -76,7 +85,7 @@ def main() -> int:  # pylint: disable=too-many-statements
         ignore_list = get_ignore_list(ignore_file_path)
     else:
         ignore_list = []
-    outfile = os.path.abspath("output.txt")
+    outfile = os.path.abspath("gptrepo_output.txt")
     with open(outfile, "w") as output_file:
         if preamble_file:
             with open(preamble_file, "r") as pf:
@@ -87,20 +96,21 @@ def main() -> int:  # pylint: disable=too-many-statements
                 "The following text is a Git repository with code. The structure of the text are sections that begin with ----!@#$----, followed by a single line containing the file path and file name, followed by a variable amount of lines containing the file contents. The text representing the Git repository ends when the symbols --END-- are encounted. Any further text beyond --END-- are meant to be interpreted as instructions using the aforementioned Git repository as context.\n"
             )
         process_repository(repo_path, ignore_list, output_file)
-    outfile = os.path.abspath("output.txt")
+    outfile = os.path.abspath("gptrepo_output.txt")
     with open(outfile, "a") as output_file:
         output_file.write("--END--")
     if not args.clipboard:
         print(f"Repository contents written to {outfile}")
-        if sys.platform == "win32":
-            os.startfile(outfile)
-        elif sys.platform == "darwin":
-            os.system(f"open {outfile}")
-        else:
-            try:
-                os.system(f"xdg-open {outfile}")
-            except Exception:  # pylint: disable=broad-except
-                pass
+        if args.openfile:
+            if sys.platform == "win32":
+                os.startfile(outfile)
+            elif sys.platform == "darwin":
+                os.system(f"open {outfile}")
+            else:
+                try:
+                    os.system(f"xdg-open {outfile}")
+                except Exception:  # pylint: disable=broad-except
+                    pass
         return 0
     with open(outfile, "r") as output_file:
         contents = output_file.read()
